@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="계시별 요금제 시간대 및 단가 변경에 따른 전력량요금 매출 영향 시뮬레이터">
   <title>PRAS - TOU</title>
-  <link rel="stylesheet" href="./style.css?v=20260803-033">
+  <link rel="stylesheet" href="./style.css?v=20260803-034">
 </head>
 <body>
 <header class="hero">
@@ -59,7 +59,7 @@
         </div>
         <div class="day-row">
           <label>요일구분<select id="dayType"><option value="평일">평일</option><option value="토요일">토요일</option><option value="일·공휴일">일·공휴일</option></select></label>
-          <label class="check"><input id="useScenarioDiscount" type="checkbox" checked> 시나리오 할인율 적용</label>
+          <label id="weekendDiscountLabel" class="check"><input id="useScenarioDiscount" type="checkbox" checked> 주말 할인 50% 적용</label>
         </div>
         <div class="legend"><span><i class="off"></i>경부하</span><span><i class="mid"></i>중간부하</span><span><i class="peak"></i>최대부하</span></div>
         <div id="hourGrid" class="hour-grid"></div>
@@ -111,9 +111,9 @@
         <div class="decomp">
           <div><span>시간대 구분 효과</span><strong id="dSchedule">-</strong></div>
           <div><span>단가 조정 효과</span><strong id="dRate">-</strong></div>
-          <div><span>할인율 효과</span><strong id="dDiscount">-</strong></div>
+          <div><span>주말 할인 효과</span><strong id="dDiscount">-</strong></div>
         </div>
-        <div class="callout">시간대 변경 → 단가 변경 → 할인 적용 순서의 순차효과임. 최종 합계는 전체 매출 증감액과 일치함.</div>
+        <div class="callout">시간대 변경 → 단가 변경 → 주말 할인 적용 순서의 순차효과임. 최종 합계는 전체 매출 증감액과 일치함.</div>
       </section>
       <section class="panel"><h2>6. 계절별 결과</h2><table id="seasonTable" class="table"></table></section>
       <section class="panel"><h2>7. 경·중·최 재분류</h2><table id="periodTable" class="table"></table></section>
@@ -131,6 +131,6 @@
 </main>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="./app.js?v=20260803-033"></script>
+<script src="./app.js?v=20260803-034"></script>
 </body>
 </html>

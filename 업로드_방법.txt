@@ -1,15 +1,23 @@
-화면 버전 표기 삭제
+PRAS - TOU 주말 할인 체크박스 수정
 
-이번에는 index.html 한 파일만 교체하면 됩니다.
+이번에는 아래 세 파일을 모두 교체합니다.
+- index.html
+- app.js
+- style.css
 
-1. GitHub 저장소에서 Add file → Upload files를 선택합니다.
-2. 압축을 푼 index.html을 업로드합니다.
-3. Commit message: 화면 버전 표기 삭제
-4. Commit changes를 누릅니다.
-5. Pages 배포 완료 후 아래 주소로 접속합니다.
-   https://kiraoov-blip.github.io/TOU-revenue-simulator/?v=033
+적용 내용
+1. 체크박스 문구: 주말 할인 50% 적용
+2. 산업용(을)(IND_EUL), 전기차충전전력(EV)에서만 활성화
+3. 그 외 종별에서는 자동 해제 및 비활성화
+4. 결과 항목: 주말 할인 효과
 
-유지되는 표시:
-- 브라우저 탭: PRAS - TOU
-- 화면 제목: 계시별 요금제 수익 분석 시뮬레이터
-- 영문 부제: Pricing and Revenue Analysis Simulator - Time of Use tariff
+GitHub 업로드
+1. 저장소 첫 화면에서 Add file → Upload files
+2. 세 파일을 동시에 업로드
+3. Commit message: 주말 할인 적용 종별 제한
+4. Commit changes
+5. Actions에서 Pages 배포 완료 확인
+6. 접속:
+   https://kiraoov-blip.github.io/TOU-revenue-simulator/?v=034
+
+tou_data.xlsx는 교체하지 않아도 됩니다.

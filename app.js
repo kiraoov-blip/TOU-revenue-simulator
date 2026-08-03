@@ -1,4 +1,4 @@
-console.info("TOU Tariff Revenue Impact Simulator app.js v0.3.1 loaded");
+console.info("PRAS - TOU weekend discount control update loaded");
 const DATA_URL="./data/tou_data.xlsx",PERIODS=["경부하","중간부하","최대부하"],PERIOD_CLASS={"경부하":"off","중간부하":"mid","최대부하":"peak"},SEASONS=["하계","춘추계","동계"],DAY_TYPES=["평일","토요일","일·공휴일"];
 const state={workbook:null,catalog:[],tariffs:[],schedules:[],usage:[],selectedCatalog:null,activeSeason:"하계",scenarioSchedule:null,scenarioDiscount:null,scenarioRates:null,lastResult:null};
 const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o)),text=v=>String(v??"").trim(),number=v=>{const n=Number(String(v??"").replace(/,/g,""));return Number.isFinite(n)?n:0};
@@ -23,6 +23,7 @@ function populateCategories(){const rows=state.catalog.filter(r=>text(r["활성�
 function selectCategory(){
   const id=$("category").value||text(state.catalog[0]["종별ID"]);
   state.selectedCatalog=state.catalog.find(r=>text(r["종별ID"])===id);
+  updateWeekendDiscountControl();
   const sheetName=text(state.selectedCatalog["사용량시트명"]);
   const ws=state.workbook.Sheets[sheetName];
   state.usage=parseUsageSheet(ws,sheetName);
@@ -34,6 +35,20 @@ function selectCategory(){
   populateVersions();
   loadScenarioPreset();
   updateWarning();
+}
+function updateWeekendDiscountControl(){
+  const categoryId=text(state.selectedCatalog?.["종별ID"]);
+  const eligible=["IND_EUL","EV"].includes(categoryId);
+  const checkbox=$("useScenarioDiscount");
+  const label=$("weekendDiscountLabel");
+  checkbox.disabled=!eligible;
+  checkbox.checked=eligible;
+  if(label){
+    label.classList.toggle("disabled",!eligible);
+    label.title=eligible
+      ? "봄·가을철 토요일·일요일·공휴일 11~14시 전력량요금 50% 할인 적용 여부"
+      : "산업용(을)과 전기차충전전력에만 적용되는 항목";
+  }
 }
 function normalizeSeason(v){
   const s=text(v).replace(/\s/g,"");
@@ -266,7 +281,7 @@ function renderChart(r){
   });
   svg.innerHTML=out;
 }
-function exportCsv(){const r=state.lastResult;if(!r)return;const rows=[["항목","값"],["종별",text(state.selectedCatalog["표시명"])],["연도",$("year").value],["범위",$("scope").value],["계약전력구간",$("contract").value],["전압구분",$("voltage").value],["선택요금",$("choice").value],["기준안 매출(원)",r.base.totalRev],["시나리오 매출(원)",r.fin.totalRev],["증감액(원)",r.fin.totalRev-r.base.totalRev],["시간대 효과(원)",r.ds],["단가 효과(원)",r.dr],["할인 효과(원)",r.dd],[],["계절","기준안(원)","시나리오(원)","증감(원)"]];SEASONS.forEach(s=>rows.push([s,r.base.bySeason[s].rev,r.fin.bySeason[s].rev,r.fin.bySeason[s].rev-r.base.bySeason[s].rev]));const csv="\ufeff"+rows.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="TOU_매출_분석결과.csv";a.click();URL.revokeObjectURL(a.href)}
+function exportCsv(){const r=state.lastResult;if(!r)return;const rows=[["항목","값"],["종별",text(state.selectedCatalog["표시명"])],["연도",$("year").value],["범위",$("scope").value],["계약전력구간",$("contract").value],["전압구분",$("voltage").value],["선택요금",$("choice").value],["기준안 매출(원)",r.base.totalRev],["시나리오 매출(원)",r.fin.totalRev],["증감액(원)",r.fin.totalRev-r.base.totalRev],["시간대 효과(원)",r.ds],["단가 효과(원)",r.dr],["주말 할인 효과(원)",r.dd],[],["계절","기준안(원)","시나리오(원)","증감(원)"]];SEASONS.forEach(s=>rows.push([s,r.base.bySeason[s].rev,r.fin.bySeason[s].rev,r.fin.bySeason[s].rev-r.base.bySeason[s].rev]));const csv="\ufeff"+rows.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="TOU_매출_분석결과.csv";a.click();URL.revokeObjectURL(a.href)}
 $("category").onchange=selectCategory;
 $("customerScope").onchange=()=>{
   updateCustomerScopeControls();

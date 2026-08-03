@@ -70,3 +70,13 @@ input:disabled{
   font-weight:600;
   letter-spacing:.15px;
 }
+
+
+/* Weekend discount eligibility */
+.check.disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+.check.disabled input{
+  cursor:not-allowed;
+}
