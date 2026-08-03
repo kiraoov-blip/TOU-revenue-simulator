@@ -1,0 +1,15 @@
+화면 버전 표기 삭제
+
+이번에는 index.html 한 파일만 교체하면 됩니다.
+
+1. GitHub 저장소에서 Add file → Upload files를 선택합니다.
+2. 압축을 푼 index.html을 업로드합니다.
+3. Commit message: 화면 버전 표기 삭제
+4. Commit changes를 누릅니다.
+5. Pages 배포 완료 후 아래 주소로 접속합니다.
+   https://kiraoov-blip.github.io/TOU-revenue-simulator/?v=033
+
+유지되는 표시:
+- 브라우저 탭: PRAS - TOU
+- 화면 제목: 계시별 요금제 수익 분석 시뮬레이터
+- 영문 부제: Pricing and Revenue Analysis Simulator - Time of Use tariff

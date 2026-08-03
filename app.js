@@ -1,4 +1,4 @@
-console.info("TOU Simulator app.js v0.3.0 loaded");
+console.info("TOU Tariff Revenue Impact Simulator app.js v0.3.1 loaded");
 const DATA_URL="./data/tou_data.xlsx",PERIODS=["경부하","중간부하","최대부하"],PERIOD_CLASS={"경부하":"off","중간부하":"mid","최대부하":"peak"},SEASONS=["하계","춘추계","동계"],DAY_TYPES=["평일","토요일","일·공휴일"];
 const state={workbook:null,catalog:[],tariffs:[],schedules:[],usage:[],selectedCatalog:null,activeSeason:"하계",scenarioSchedule:null,scenarioDiscount:null,scenarioRates:null,lastResult:null};
 const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o)),text=v=>String(v??"").trim(),number=v=>{const n=Number(String(v??"").replace(/,/g,""));return Number.isFinite(n)?n:0};
@@ -267,15 +267,6 @@ function renderChart(r){
   svg.innerHTML=out;
 }
 function exportCsv(){const r=state.lastResult;if(!r)return;const rows=[["항목","값"],["종별",text(state.selectedCatalog["표시명"])],["연도",$("year").value],["범위",$("scope").value],["계약전력구간",$("contract").value],["전압구분",$("voltage").value],["선택요금",$("choice").value],["기준안 매출(원)",r.base.totalRev],["시나리오 매출(원)",r.fin.totalRev],["증감액(원)",r.fin.totalRev-r.base.totalRev],["시간대 효과(원)",r.ds],["단가 효과(원)",r.dr],["할인 효과(원)",r.dd],[],["계절","기준안(원)","시나리오(원)","증감(원)"]];SEASONS.forEach(s=>rows.push([s,r.base.bySeason[s].rev,r.fin.bySeason[s].rev,r.fin.bySeason[s].rev-r.base.bySeason[s].rev]));const csv="\ufeff"+rows.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="TOU_매출_분석결과.csv";a.click();URL.revokeObjectURL(a.href)}
-$("reloadData").onclick=loadGithubData;
-$("localFile").onchange=e=>{
-  const f=e.target.files[0];
-  if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>loadWorkbook(reader.result,"PC 임시");
-  reader.readAsArrayBuffer(f);
-  e.target.value="";
-};
 $("category").onchange=selectCategory;
 $("customerScope").onchange=()=>{
   updateCustomerScopeControls();

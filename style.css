@@ -57,3 +57,16 @@ input:disabled{
     grid-template-columns:1fr;
   }
 }
+
+
+/* v0.3.1 header simplification */
+.hero{
+  display:block;
+}
+.hero .english-title{
+  margin:4px 0 0;
+  color:#dbe9f7;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.15px;
+}
