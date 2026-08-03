@@ -80,3 +80,12 @@ input:disabled{
 .check.disabled input{
   cursor:not-allowed;
 }
+
+
+/* Day-type average load curve */
+.graph-day-tabs{
+  margin:0 0 8px;
+}
+.graph-day-info{
+  margin-bottom:10px;
+}

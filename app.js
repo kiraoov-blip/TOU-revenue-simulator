@@ -1,6 +1,6 @@
-console.info("PRAS - TOU weekend discount control update loaded");
+console.info("PRAS - TOU day-type load curve update loaded");
 const DATA_URL="./data/tou_data.xlsx",PERIODS=["경부하","중간부하","최대부하"],PERIOD_CLASS={"경부하":"off","중간부하":"mid","최대부하":"peak"},SEASONS=["하계","춘추계","동계"],DAY_TYPES=["평일","토요일","일·공휴일"];
-const state={workbook:null,catalog:[],tariffs:[],schedules:[],usage:[],selectedCatalog:null,activeSeason:"하계",scenarioSchedule:null,scenarioDiscount:null,scenarioRates:null,lastResult:null};
+const state={workbook:null,catalog:[],tariffs:[],schedules:[],usage:[],selectedCatalog:null,activeSeason:"하계",graphDayType:"평일",scenarioSchedule:null,scenarioDiscount:null,scenarioRates:null,lastResult:null};
 const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o)),text=v=>String(v??"").trim(),number=v=>{const n=Number(String(v??"").replace(/,/g,""));return Number.isFinite(n)?n:0};
 const normalizeDate=v=>{if(v instanceof Date)return v;const s=text(v).replace(/[^0-9]/g,"");return s.length===8?new Date(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8)):null},ymd=d=>d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`:"-";
 const fmtWon=n=>{const a=Math.abs(n),s=n<0?"-":"";if(a>=1e12)return s+(a/1e12).toLocaleString("ko-KR",{maximumFractionDigits:3})+"조원";if(a>=1e8)return s+(a/1e8).toLocaleString("ko-KR",{maximumFractionDigits:1})+"억원";if(a>=1e4)return s+(a/1e4).toLocaleString("ko-KR",{maximumFractionDigits:1})+"만원";return s+Math.round(a).toLocaleString("ko-KR")+"원"};
@@ -212,7 +212,7 @@ function renderScheduleCompare(){const d=$("dayType").value,b=buildSchedule($("b
 function rateTable(r,e){let h=`<thead><tr><th>계절</th>${PERIODS.map(p=>`<th>${p}</th>`).join("")}</tr></thead><tbody>`;SEASONS.forEach(s=>{h+=`<tr><td>${s==="춘추계"?"봄·가을철":s}</td>`;PERIODS.forEach(p=>h+=e?`<td><input type="number" step="0.1" data-season="${s}" data-period="${p}" value="${r[s][p].toFixed(1)}"></td>`:`<td>${r[s][p].toFixed(1)}</td>`);h+="</tr>"});return h+"</tbody>"}function renderRates(){$("baseRates").innerHTML=rateTable(buildRates($("baseVersion").value),false);$("scenarioRates").innerHTML=rateTable(state.scenarioRates,true);document.querySelectorAll("#scenarioRates input").forEach(i=>i.oninput=()=>{state.scenarioRates[i.dataset.season][i.dataset.period]=number(i.value);calculate()})}
 function filteredUsage(){const y=$("year").value,s=$("scope").value,rows=state.usage.filter(r=>(y==="AVG"||r.year===number(y))&&(s==="연간"||r.season===s)),n=[...new Set(rows.map(r=>r.year))].length;return{rows,factor:y==="AVG"&&n?1/n:1}}
 function calc(schedule,rates,discount,useDiscount){const{rows,factor}=filteredUsage(),bySeason={},byPeriod={};SEASONS.forEach(s=>bySeason[s]={usage:0,rev:0});PERIODS.forEach(p=>byPeriod[p]={usage:0,rev:0});let totalUsage=0,totalRev=0,days=0,minDate=null,maxDate=null,hourUsage=Array(24).fill(0);rows.forEach(r=>{days+=factor;if(!minDate||r.date<minDate)minDate=r.date;if(!maxDate||r.date>maxDate)maxDate=r.date;r.hours.forEach((raw,h)=>{const q=raw*factor,p=schedule[r.season][r.dayType][h],d=useDiscount?discount[r.season][r.dayType][h]:1,rev=q*rates[r.season][p]*d;totalUsage+=q;totalRev+=rev;hourUsage[h]+=q;bySeason[r.season].usage+=q;bySeason[r.season].rev+=rev;byPeriod[p].usage+=q;byPeriod[p].rev+=rev})});return{totalUsage,totalRev,days,minDate,maxDate,hourUsage,bySeason,byPeriod}}
-function calculate(){if(!state.scenarioSchedule||!state.scenarioRates)return;const bb=buildSchedule($("baseVersion").value),br=buildRates($("baseVersion").value),base=calc(bb.schedule,br,bb.discount,true),sch=calc(state.scenarioSchedule,br,bb.discount,true),rat=calc(state.scenarioSchedule,state.scenarioRates,bb.discount,true),fin=calc(state.scenarioSchedule,state.scenarioRates,state.scenarioDiscount,$("useScenarioDiscount").checked),delta=fin.totalRev-base.totalRev;$("kUsage").textContent=fmtEnergy(fin.totalUsage);$("kPeriod").textContent=`${ymd(fin.minDate)}~${ymd(fin.maxDate)}`;$("kBase").textContent=fmtWon(base.totalRev);$("kScenario").textContent=fmtWon(fin.totalRev);$("kDelta").textContent=signedWon(delta);$("kDelta").className=cssSign(delta);$("kDeltaPct").textContent=base.totalRev?`${delta>=0?"+":""}${(delta/base.totalRev*100).toFixed(3)}%`:"-";$("kBaseAvg").textContent=base.totalUsage?(base.totalRev/base.totalUsage).toFixed(1):"-";$("kScenarioAvg").textContent=fin.totalUsage?(fin.totalRev/fin.totalUsage).toFixed(1):"-";const ds=sch.totalRev-base.totalRev,dr=rat.totalRev-sch.totalRev,dd=fin.totalRev-rat.totalRev;[["dSchedule",ds],["dRate",dr],["dDiscount",dd]].forEach(([id,v])=>{$(id).textContent=signedWon(v);$(id).className=cssSign(v)});renderSeasonTable(base,fin);renderPeriodTable(base,fin);renderChart(fin);state.lastResult={base,fin,ds,dr,dd}}
+function calculate(){if(!state.scenarioSchedule||!state.scenarioRates)return;const bb=buildSchedule($("baseVersion").value),br=buildRates($("baseVersion").value),base=calc(bb.schedule,br,bb.discount,true),sch=calc(state.scenarioSchedule,br,bb.discount,true),rat=calc(state.scenarioSchedule,state.scenarioRates,bb.discount,true),fin=calc(state.scenarioSchedule,state.scenarioRates,state.scenarioDiscount,$("useScenarioDiscount").checked),delta=fin.totalRev-base.totalRev;$("kUsage").textContent=fmtEnergy(fin.totalUsage);$("kPeriod").textContent=`${ymd(fin.minDate)}~${ymd(fin.maxDate)}`;$("kBase").textContent=fmtWon(base.totalRev);$("kScenario").textContent=fmtWon(fin.totalRev);$("kDelta").textContent=signedWon(delta);$("kDelta").className=cssSign(delta);$("kDeltaPct").textContent=base.totalRev?`${delta>=0?"+":""}${(delta/base.totalRev*100).toFixed(3)}%`:"-";$("kBaseAvg").textContent=base.totalUsage?(base.totalRev/base.totalUsage).toFixed(1):"-";$("kScenarioAvg").textContent=fin.totalUsage?(fin.totalRev/fin.totalUsage).toFixed(1):"-";const ds=sch.totalRev-base.totalRev,dr=rat.totalRev-sch.totalRev,dd=fin.totalRev-rat.totalRev;[["dSchedule",ds],["dRate",dr],["dDiscount",dd]].forEach(([id,v])=>{$(id).textContent=signedWon(v);$(id).className=cssSign(v)});renderSeasonTable(base,fin);renderPeriodTable(base,fin);renderChart();state.lastResult={base,fin,ds,dr,dd}}
 function renderSeasonTable(b,f){let h="<thead><tr><th>계절</th><th>기준안</th><th>시나리오</th><th>증감</th></tr></thead><tbody>";SEASONS.forEach(s=>{const d=f.bySeason[s].rev-b.bySeason[s].rev;h+=`<tr><td>${s==="춘추계"?"봄·가을철":s}</td><td>${fmtWon(b.bySeason[s].rev)}</td><td>${fmtWon(f.bySeason[s].rev)}</td><td class="${cssSign(d)}">${signedWon(d)}</td></tr>`});$("seasonTable").innerHTML=h+"</tbody>"}
 function renderPeriodTable(b,f){let h="<thead><tr><th>시간대</th><th>기준 사용량</th><th>시나리오 사용량</th><th>변화</th></tr></thead><tbody>";PERIODS.forEach(p=>{const d=f.byPeriod[p].usage-b.byPeriod[p].usage;h+=`<tr><td>${p}</td><td>${fmtEnergy(b.byPeriod[p].usage)}</td><td>${fmtEnergy(f.byPeriod[p].usage)}</td><td class="${cssSign(d)}">${d>=0?"+":""}${fmtEnergy(d)}</td></tr>`});$("periodTable").innerHTML=h+"</tbody>"}
 function getYAxisBounds(vals){
@@ -252,13 +252,39 @@ function updateYAxisControlState(){
   $("yAxisMin").disabled=!custom;
   $("yAxisMax").disabled=!custom;
 }
-function renderChart(r){
+function getGraphDaySeries(dayType){
+  const {rows,factor}=filteredUsage();
+  const selected=rows.filter(r=>r.dayType===dayType);
+  const hourUsage=Array(24).fill(0);
+  let weightedDays=0;
+  selected.forEach(r=>{
+    weightedDays+=factor;
+    r.hours.forEach((v,h)=>hourUsage[h]+=v*factor);
+  });
+  return {
+    vals:hourUsage.map(v=>weightedDays?v/weightedDays:0),
+    rowCount:selected.length,
+    weightedDays
+  };
+}
+function renderChart(){
   const svg=$("loadChart"),w=900,h=285,l=64,rr=18,t=36,b=35;
-  const vals=r.hourUsage.map(v=>r.days?v/r.days:0);
+  const day=state.graphDayType;
+  const graph=getGraphDaySeries(day);
+  const vals=graph.vals;
+  const info=$("graphDayInfo");
+  if(info){
+    const scopeText=$("scope").value==="연간"?"연간":$("scope").selectedOptions[0].textContent;
+    const yearText=$("year").selectedOptions[0]?.textContent||"";
+    info.textContent=`${yearText} · ${scopeText} · ${day} ${graph.rowCount.toLocaleString()}일의 시간대별 일평균`;
+  }
+  if(!graph.rowCount){
+    svg.innerHTML='<text x="450" y="145" text-anchor="middle" font-size="14" fill="#687386">선택한 조건의 요일별 부하자료가 없음</text>';
+    return;
+  }
   const {yMin,yMax}=getYAxisBounds(vals);
   const x=i=>l+i*(w-l-rr)/23;
   const y=v=>h-b-(v-yMin)/(yMax-yMin)*(h-t-b);
-  const day=$("dayType").value;
   let out="";
   for(let i=0;i<24;i++){
     const p=state.scenarioSchedule[state.activeSeason][day][i];
@@ -314,17 +340,22 @@ $("copyBase").onclick=copyBase;
 $("exportCsv").onclick=exportCsv;
 $("yAxisMode").onchange=()=>{
   updateYAxisControlState();
-  if(state.lastResult) renderChart(state.lastResult.fin);
+  if(state.lastResult) renderChart();
 };
 $("applyYAxis").onclick=()=>{
-  if(state.lastResult) renderChart(state.lastResult.fin);
+  if(state.lastResult) renderChart();
 };
-$("yAxisMin").onchange=()=>{if(state.lastResult) renderChart(state.lastResult.fin)};
-$("yAxisMax").onchange=()=>{if(state.lastResult) renderChart(state.lastResult.fin)};
+$("yAxisMin").onchange=()=>{if(state.lastResult) renderChart()};
+$("yAxisMax").onchange=()=>{if(state.lastResult) renderChart()};
 document.querySelectorAll("#seasonTabs .tab").forEach(btn=>btn.onclick=()=>{
   state.activeSeason=btn.dataset.season;
   document.querySelectorAll("#seasonTabs .tab").forEach(x=>x.classList.toggle("active",x===btn));
   renderAll();
+});
+document.querySelectorAll("#graphDayTabs .tab").forEach(btn=>btn.onclick=()=>{
+  state.graphDayType=btn.dataset.graphDay;
+  document.querySelectorAll("#graphDayTabs .tab").forEach(x=>x.classList.toggle("active",x===btn));
+  renderChart();
 });
 document.querySelectorAll(".rate-adjust").forEach(btn=>btn.onclick=()=>{
   const m=number(btn.dataset.mult);

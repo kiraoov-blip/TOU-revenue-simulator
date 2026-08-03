@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="계시별 요금제 시간대 및 단가 변경에 따른 전력량요금 매출 영향 시뮬레이터">
   <title>PRAS - TOU</title>
-  <link rel="stylesheet" href="./style.css?v=20260803-034">
+  <link rel="stylesheet" href="./style.css?v=20260803-035">
 </head>
 <body>
 <header class="hero">
@@ -82,7 +82,13 @@
       </section>
 
       <section class="panel">
-        <h2>4. 평균 부하곡선</h2>
+        <h2>4. 요일별 평균 부하곡선</h2>
+        <div id="graphDayTabs" class="tab-row graph-day-tabs">
+          <button data-graph-day="평일" class="tab active">평일</button>
+          <button data-graph-day="토요일" class="tab">토요일</button>
+          <button data-graph-day="일·공휴일" class="tab">일·공휴일</button>
+        </div>
+        <div id="graphDayInfo" class="muted graph-day-info"></div>
         <div class="chart-controls">
           <label>세로축 표시
             <select id="yAxisMode">
@@ -101,7 +107,7 @@
         </div>
         <div id="yAxisInfo" class="muted chart-axis-info"></div>
         <svg id="loadChart" class="chart" viewBox="0 0 900 285" preserveAspectRatio="none"></svg>
-        <p class="muted">‘확대 자동’은 부하곡선의 최소·최대 구간을 확대하여 시간대별 변화를 쉽게 확인함. 상단 색 띠는 현재 시나리오 시간대 구분임.</p>
+        <p class="muted">‘확대 자동’은 선택한 요일의 최소·최대 구간을 확대함. 원자료에서 일요일과 공휴일은 ‘일·공휴일’로 통합되어 있음. 상단 색 띠는 현재 선택된 계절·요일의 시나리오 시간대 구분임.</p>
       </section>
     </div>
 
@@ -131,6 +137,6 @@
 </main>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="./app.js?v=20260803-034"></script>
+<script src="./app.js?v=20260803-035"></script>
 </body>
 </html>
