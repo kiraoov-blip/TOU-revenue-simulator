@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="계시별 요금제 시간대 및 단가 변경에 따른 전력량요금 매출 영향 시뮬레이터">
   <title>TOU Revenue Simulator</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20260803-030">
 </head>
 <body>
 <header class="hero">
   <div>
-    <h1>계시별 요금제 매출 영향 시뮬레이터 <span>v0.2.2</span></h1>
+    <h1>계시별 요금제 매출 영향 시뮬레이터 <span>v0.3.0</span></h1>
     <p>GitHub의 <code>data/tou_data.xlsx</code>를 자동으로 읽어 종별·연도·계절·시간대별 전력량요금 변화를 분석</p>
   </div>
   <div class="hero-actions">
@@ -21,14 +21,6 @@
 </header>
 
 <main>
-  <section class="panel status-panel">
-    <div>
-      <div class="eyebrow">데이터 상태</div>
-      <div id="dataStatus" class="status">초기화 중</div>
-      <div id="dataDetail" class="muted">data/tou_data.xlsx를 확인하고 있음</div>
-    </div>
-    <div class="status-guide">평소에는 GitHub의 <code>data/tou_data.xlsx</code>만 같은 이름으로 교체하면 됨</div>
-  </section>
 
   <section class="panel">
     <h2>1. 분석 조건</h2>
@@ -36,6 +28,7 @@
       <label>분석 종별<select id="category"></select></label>
       <label>부하곡선 연도<select id="year"></select></label>
       <label>분석 범위<select id="scope"><option value="연간">연간</option><option value="하계">하계</option><option value="춘추계">봄·가을철</option><option value="동계">겨울철</option></select></label>
+      <label>고객 범위<select id="customerScope"><option value="specific">요금제 직접 선택</option><option value="all">전체 고객(단순평균)</option></select></label>
       <label>계약전력구간<select id="contract"></select></label>
       <label>전압구분<select id="voltage"></select></label>
       <label>선택요금<select id="choice"></select></label>
@@ -95,8 +88,25 @@
 
       <section class="panel">
         <h2>4. 평균 부하곡선</h2>
+        <div class="chart-controls">
+          <label>세로축 표시
+            <select id="yAxisMode">
+              <option value="zoom" selected>확대 자동</option>
+              <option value="zero">0부터 자동</option>
+              <option value="custom">직접 입력</option>
+            </select>
+          </label>
+          <label>최소값(백만 kWh/일)
+            <input id="yAxisMin" type="number" step="0.1" min="0">
+          </label>
+          <label>최대값(백만 kWh/일)
+            <input id="yAxisMax" type="number" step="0.1" min="0">
+          </label>
+          <button id="applyYAxis" class="btn">세로축 적용</button>
+        </div>
+        <div id="yAxisInfo" class="muted chart-axis-info"></div>
         <svg id="loadChart" class="chart" viewBox="0 0 900 285" preserveAspectRatio="none"></svg>
-        <p class="muted">선택한 연도·범위의 시간대별 일평균 부하곡선. 상단 색 띠는 현재 시나리오 시간대 구분임.</p>
+        <p class="muted">‘확대 자동’은 부하곡선의 최소·최대 구간을 확대하여 시간대별 변화를 쉽게 확인함. 상단 색 띠는 현재 시나리오 시간대 구분임.</p>
       </section>
     </div>
 
@@ -126,6 +136,6 @@
 </main>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="./app.js?v=20260803-022"></script>
+<script src="./app.js?v=20260803-030"></script>
 </body>
 </html>
