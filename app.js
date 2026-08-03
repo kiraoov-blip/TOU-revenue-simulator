@@ -1,3 +1,4 @@
+console.info("TOU Simulator app.js v0.2.2 loaded");
 const DATA_URL="./data/tou_data.xlsx",PERIODS=["경부하","중간부하","최대부하"],PERIOD_CLASS={"경부하":"off","중간부하":"mid","최대부하":"peak"},SEASONS=["하계","춘추계","동계"],DAY_TYPES=["평일","토요일","일·공휴일"];
 const state={workbook:null,catalog:[],tariffs:[],schedules:[],usage:[],selectedCatalog:null,activeSeason:"하계",scenarioSchedule:null,scenarioDiscount:null,scenarioRates:null,lastResult:null};
 const $=id=>document.getElementById(id),clone=o=>JSON.parse(JSON.stringify(o)),text=v=>String(v??"").trim(),number=v=>{const n=Number(String(v??"").replace(/,/g,""));return Number.isFinite(n)?n:0};
@@ -7,11 +8,98 @@ const fmtEnergy=n=>{const a=Math.abs(n),s=n<0?"-":"";if(a>=1e9)return s+(a/1e9).
 const signedWon=n=>(n>=0?"+":"")+fmtWon(n),cssSign=n=>n>=0?"pos":"neg";
 function sheetRows(wb,name){const ws=wb.Sheets[name];return ws?XLSX.utils.sheet_to_json(ws,{defval:"",raw:true}):[]}
 async function loadGithubData(){setStatus("loading","GitHub 데이터 불러오는 중",DATA_URL);try{const res=await fetch(`${DATA_URL}?t=${Date.now()}`,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);loadWorkbook(await res.arrayBuffer(),"GitHub")}catch(e){setStatus("error","GitHub 데이터 불러오기 실패",`${e.message} · Pages에서 실행 중인지, data/tou_data.xlsx가 있는지 확인`)}}
-function loadWorkbook(buffer,source){try{if(typeof XLSX==="undefined")throw new Error("SheetJS 라이브러리를 불러오지 못함");const wb=XLSX.read(buffer,{type:"array",cellDates:true});state.workbook=wb;state.catalog=sheetRows(wb,"종별목록");state.tariffs=sheetRows(wb,"요금표");state.schedules=sheetRows(wb,"시간대기준");["종별목록","요금표","시간대기준"].forEach(n=>{if(!wb.Sheets[n])throw new Error(`필수 시트 '${n}' 없음`)});populateCategories();setStatus("ok",`${source} 데이터 연결 완료`,`${wb.SheetNames.length}개 시트 · ${new Date().toLocaleString("ko-KR")}`)}catch(e){setStatus("error","엑셀 구조 오류",e.message)}}
+function loadWorkbook(buffer,source){try{if(typeof XLSX==="undefined")throw new Error("SheetJS 라이브러리를 불러오지 못함");const wb=XLSX.read(buffer,{type:"array",cellDates:true});state.workbook=wb;state.catalog=sheetRows(wb,"종별목록");state.tariffs=sheetRows(wb,"요금표");state.schedules=sheetRows(wb,"시간대기준");["종별목록","요금표","시간대기준"].forEach(n=>{if(!wb.Sheets[n])throw new Error(`필수 시트 '${n}' 없음`)});populateCategories();setStatus("ok",`${source} 데이터 연결 완료`,`${wb.SheetNames.length}개 시트 · 사용량 ${state.usage.length.toLocaleString()}일 · ${[...new Set(state.usage.map(r=>r.year))].sort().join(", ")}년`)}catch(e){setStatus("error","엑셀 구조 오류",e.message)}}
 function setStatus(type,title,detail){$("dataStatus").className=`status ${type==="ok"?"ok":type==="error"?"error":""}`;$("dataStatus").textContent=title;$("dataDetail").textContent=detail}
 function populateCategories(){const rows=state.catalog.filter(r=>text(r["활성화"]).toUpperCase()==="Y"&&state.workbook.Sheets[text(r["사용량시트명"])]);if(!rows.length)throw new Error("활성화된 종별 또는 사용량 시트가 없음");$("category").innerHTML=rows.map(r=>`<option value="${text(r["종별ID"])}">${text(r["표시명"])}</option>`).join("");selectCategory()}
-function selectCategory(){const id=$("category").value||text(state.catalog[0]["종별ID"]);state.selectedCatalog=state.catalog.find(r=>text(r["종별ID"])===id);state.usage=parseUsage(sheetRows(state.workbook,text(state.selectedCatalog["사용량시트명"])));populateYears();populateTariffDimensions();populateVersions();loadScenarioPreset();updateWarning()}
-function parseUsage(rows){return rows.map(r=>{const date=normalizeDate(r["날짜"]??r["일자"]),year=number(r["연도"]??r["연"])||(date?date.getFullYear():0),month=number(r["월"])||(date?date.getMonth()+1:0),season=text(r["계절"]),dayType=text(r["요일"]??r["요일구분"]),hours=Array.from({length:24},(_,i)=>number(r[`H${String(i+1).padStart(2,"0")}`]));return{date,year,month,season,dayType,hours}}).filter(r=>r.date&&r.year&&SEASONS.includes(r.season)&&DAY_TYPES.includes(r.dayType))}
+function selectCategory(){
+  const id=$("category").value||text(state.catalog[0]["종별ID"]);
+  state.selectedCatalog=state.catalog.find(r=>text(r["종별ID"])===id);
+  const sheetName=text(state.selectedCatalog["사용량시트명"]);
+  const ws=state.workbook.Sheets[sheetName];
+  state.usage=parseUsageSheet(ws,sheetName);
+  if(!state.usage.length){
+    throw new Error(`사용량 시트 '${sheetName}'에서 유효한 날짜별 부하자료를 찾지 못함`);
+  }
+  populateYears();
+  populateTariffDimensions();
+  populateVersions();
+  loadScenarioPreset();
+  updateWarning();
+}
+function normalizeSeason(v){
+  const s=text(v).replace(/\s/g,"");
+  if(["하계","여름","여름철"].includes(s)) return "하계";
+  if(["춘추계","봄가을","봄·가을","봄가을철","봄·가을철"].includes(s)) return "춘추계";
+  if(["동계","겨울","겨울철"].includes(s)) return "동계";
+  return s;
+}
+function normalizeDayType(v){
+  const s=text(v).replace(/\s/g,"");
+  if(["평일","주중"].includes(s)) return "평일";
+  if(["토요일","토"].includes(s)) return "토요일";
+  if(["일·공휴일","일/공휴일","일공휴일","일요일·공휴일","일요일/공휴일","일요일","공휴일"].includes(s)) return "일·공휴일";
+  return s;
+}
+function dateFromRaw(v){
+  if(v instanceof Date && !Number.isNaN(v.getTime())) return v;
+  if(typeof v==="number"){
+    const digits=String(Math.trunc(v));
+    if(/^\d{8}$/.test(digits)){
+      const y=+digits.slice(0,4),m=+digits.slice(4,6),d=+digits.slice(6,8);
+      const dt=new Date(y,m-1,d);
+      return Number.isNaN(dt.getTime())?null:dt;
+    }
+    if(v>20000 && v<80000 && typeof XLSX!=="undefined" && XLSX.SSF){
+      const p=XLSX.SSF.parse_date_code(v);
+      if(p) return new Date(p.y,p.m-1,p.d);
+    }
+  }
+  const digits=text(v).replace(/[^0-9]/g,"");
+  if(digits.length>=8){
+    const y=+digits.slice(0,4),m=+digits.slice(4,6),d=+digits.slice(6,8);
+    const dt=new Date(y,m-1,d);
+    return Number.isNaN(dt.getTime())?null:dt;
+  }
+  return null;
+}
+function parseUsageSheet(ws,sheetName){
+  if(!ws) throw new Error(`사용량 시트 '${sheetName}' 없음`);
+  const matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+  if(matrix.length<2) return [];
+  const headers=matrix[0].map(v=>text(v).replace(/\s/g,""));
+  const findIndex=(aliases)=>headers.findIndex(h=>aliases.includes(h));
+  const dateIdx=findIndex(["날짜","일자","일시"]);
+  const yearIdx=findIndex(["연도","연"]);
+  const monthIdx=findIndex(["월"]);
+  const seasonIdx=findIndex(["계절"]);
+  const dayIdx=findIndex(["요일","요일구분"]);
+  const hourIdx=Array.from({length:24},(_,i)=>findIndex([`H${String(i+1).padStart(2,"0")}`]));
+  const missing=[];
+  if(dateIdx<0) missing.push("날짜/일자");
+  if(seasonIdx<0) missing.push("계절");
+  if(dayIdx<0) missing.push("요일");
+  hourIdx.forEach((idx,i)=>{if(idx<0) missing.push(`H${String(i+1).padStart(2,"0")}`)});
+  if(missing.length) throw new Error(`'${sheetName}' 시트 필수열 누락: ${missing.slice(0,8).join(", ")}${missing.length>8?" 외":""}`);
+  const parsed=[];
+  for(let r=1;r<matrix.length;r++){
+    const row=matrix[r];
+    const date=dateFromRaw(row[dateIdx]);
+    const rawDateDigits=text(row[dateIdx]).replace(/[^0-9]/g,"");
+    let year=yearIdx>=0?number(row[yearIdx]):0;
+    if(!year && date) year=date.getFullYear();
+    if(!year && rawDateDigits.length>=4) year=number(rawDateDigits.slice(0,4));
+    let month=monthIdx>=0?number(row[monthIdx]):0;
+    if(!month && date) month=date.getMonth()+1;
+    if(!month && rawDateDigits.length>=6) month=number(rawDateDigits.slice(4,6));
+    const season=normalizeSeason(row[seasonIdx]);
+    const dayType=normalizeDayType(row[dayIdx]);
+    const hours=hourIdx.map(idx=>number(row[idx]));
+    if(year>=1900 && year<=2200 && SEASONS.includes(season) && DAY_TYPES.includes(dayType)){
+      parsed.push({date:date||new Date(year,Math.max(0,month-1),1),year,month,season,dayType,hours});
+    }
+  }
+  return parsed;
+}
 function populateYears(){const ys=[...new Set(state.usage.map(r=>r.year))].sort((a,b)=>b-a);$("year").innerHTML=ys.map(y=>`<option value="${y}">${y}년</option>`).join("")+(ys.length>1?`<option value="AVG">전체기간 연평균</option>`:"")}
 function categoryTariffs(){return state.tariffs.filter(r=>text(r["요금그룹ID"])===text(state.selectedCatalog["요금그룹ID"]))}function categorySchedules(){return state.schedules.filter(r=>text(r["시간대그룹ID"])===text(state.selectedCatalog["시간대그룹ID"]))}function unique(rows,key){return[...new Set(rows.map(r=>text(r[key])).filter(Boolean))]}
 function populateTariffDimensions(){$("contract").innerHTML=unique(categoryTariffs(),"계약전력구간").map(v=>`<option>${v}</option>`).join("");populateVoltage()}function populateVoltage(){const r=categoryTariffs().filter(x=>text(x["계약전력구간"])===$("contract").value);$("voltage").innerHTML=unique(r,"전압구분").map(v=>`<option>${v}</option>`).join("");populateChoice()}function populateChoice(){const r=categoryTariffs().filter(x=>text(x["계약전력구간"])===$("contract").value&&text(x["전압구분"])===$("voltage").value);$("choice").innerHTML=unique(r,"선택요금").map(v=>`<option>${v}</option>`).join("")}
