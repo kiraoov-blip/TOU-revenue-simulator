@@ -89,3 +89,17 @@ input:disabled{
 .graph-day-info{
   margin-bottom:10px;
 }
+
+/* Overall load-curve tab */
+.graph-day-tabs .tab[data-graph-day="전체"]{
+  font-weight:800;
+}
+
+.calibration-check{
+  padding:8px 10px;
+  border:1px solid #b9c8d8;
+  border-radius:7px;
+  background:#f7fafc;
+  color:var(--navy)!important;
+  font-weight:700;
+}
